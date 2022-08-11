@@ -1,2 +1,1 @@
-# GazeDetectionOpenCV_NSF_CHI2022
- 
+ ## Please execute the Gaze.py file
