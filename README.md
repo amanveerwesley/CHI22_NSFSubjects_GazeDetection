@@ -5,6 +5,6 @@
 4.  Output
 5.  Frames
 
-## Please execute the Gaze.py file
+## Then execute the Gaze.py file
 
 ## After collecting data for all subjects, run the concatenate.py file
