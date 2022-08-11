@@ -1,7 +1,7 @@
 # Code for expression extraction taken from github.com/serengil/tensorflow-101
 # Code for gaze and blink tracking taken from pysource.com/2019/01/17/eye-gaze-detection-2-gaze-controlled-keyboard-with-python-and-opencv-p-4/
 
-# Combined and modified for data collection by Christopher Blank
+
 
 # Run CSVs through add_Session_to_csv.py to complete formatting
 ###############################################################
@@ -19,12 +19,13 @@ import pandas as pd
 #-----------------------------
 #opencv initialization
 
-face_cascade = cv2.CascadeClassifier('C:/Users/cpladmin/Desktop/FACS/lib/haarcascade_frontalface_default.xml')
+face_cascade = cv2.CascadeClassifier('lib/haarcascade_frontalface_default.xml')
 
 #face expression recognizer initialization
 from keras.models import model_from_json
-model = model_from_json(open("C:/Users/cpladmin/Desktop/FACS/lib/tensorflow-101-master/model/facial_expression_model_structure.json", "r").read())
-model.load_weights('C:/Users/cpladmin/Desktop/FACS/lib/tensorflow-101-master/model/facial_expression_model_weights.h5') #load weights
+model = model_from_json(open("lib/tensorflow-101-master/model/facial_expression_model_structure.json", "r").read())
+model.load_weights('lib/tensorflow-101-master/model/facial_expression_model_weights.h5') #load weights
+#-----------------------------
 #-----------------------------
 
 emotions = ('Angry', 'Disgusted', 'Afraid', 'Happy', 'Sad', 'Surprised', 'Neutral')
@@ -32,7 +33,7 @@ emotions = ('Angry', 'Disgusted', 'Afraid', 'Happy', 'Sad', 'Surprised', 'Neutra
 #---------------------------------------------------------------------------#
 # Facial Landmarks for Gaze/Blink reading
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor("C:/Users/cpladmin/Desktop/FACS/lib/shape_predictor_68_face_landmarks.dat")
+predictor = dlib.shape_predictor("lib/shape_predictor_68_face_landmarks.dat")
 
 def midpoint(p1 ,p2):
 	return int((p1.x + p2.x)/2), int((p1.y + p2.y)/2)
@@ -99,16 +100,21 @@ def find_mp4_filenames( path_to_dir, suffix=".mp4" ):
     return [ filename for filename in filenames if filename.endswith( suffix ) ]
 
 # Path to Participants_FACS.py. Facial videos should be stored in the same folder. No mp4 files other than facial videos should be stored in this folder.
-#filenames = find_mp4_filenames("E:/NSF-Email_FacialVideos_63Subjects/To Do") C:\Users\despe\source\repos\UH CS REU 2019\Chi\Stage 2\feed
-filenames = find_mp4_filenames("C:/Users/cpladmin/Desktop/FACS/Facial Videos/Test")
+filenames = find_mp4_filenames("Input/")
 
 for name in filenames:
-	p_id = name[:4]
+	p_id = name[7:11]
+	#sess = name.split("_")[2]
 	
-	newmp4 = p_id + '_FACS+Gaze.mp4'
-	newcsv = p_id + '_FACS+Gaze.csv'
+	framelocation = 'Frames' + '/' + p_id
+
+	if not os.path.exists(framelocation):
+		os.makedirs(framelocation)
+	
+	newmp4 = 'Output/' + p_id + '_Gaze.mp4'
+	newcsv = 'CSV/Subjects/' + p_id + '_Gaze.csv'
 	# Input video file
-	cap = cv2.VideoCapture("C:/Users/cpladmin/Desktop/FACS/Facial Videos/Test/" + name)
+	cap = cv2.VideoCapture("Input/" + name)
 	# Output mp4
 	out = cv2.VideoWriter(newmp4, 25, 10.0, (int(cap.get(3)), int(cap.get(4))))
 	#-----------------------------
@@ -212,42 +218,6 @@ for name in filenames:
 			surprised_list.append(new_predictions[6])
 			neutral_list.append(new_predictions[7])
 			
-			# Print FACS/expression probabilities to screen
-			for emotion_index in range (0, 7):
-				cv2.putText(img, emotions[emotion_index], (5, 350-emotion_index*40), cv2.FONT_HERSHEY_SIMPLEX, .5, (0,0,0), 2)
-				cv2.putText(img, emotions[emotion_index], (5, 350-emotion_index*40), cv2.FONT_HERSHEY_SIMPLEX, .5, (255,255,255), 1)
-				cv2.putText(img, str(round(new_predictions[emotion_index+1], 1)), (5, 367-emotion_index*40), cv2.FONT_HERSHEY_SIMPLEX, .5, (0,0,0), 2)
-				cv2.putText(img, str(round(new_predictions[emotion_index+1], 1)), (5, 367-emotion_index*40), cv2.FONT_HERSHEY_SIMPLEX, .5, (255,255,255), 1)
-				
-			#find max indexed array 0: angry, 1:disgust, 2:fear, 3:happy, 4:sad, 5:surprise, 6:neutral
-			max_index = np.argmax(predictions[0])
-			
-			emotion_strength = round(new_predictions[max_index+1], 1)
-			
-			emotion = emotions[max_index]
-			
-			# Middle of the bounding rectangle
-			halfway = int(x+(w/2))
-			
-			#write emotion text above rectangle
-			if (emotion_strength > .69):
-				output = emotion + " " + str(emotion_strength)
-				
-				cv2.putText(img, output, (halfway, int(y)), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
-
-			else:
-				e_list = np.argsort(new_predictions)
-				second_emotion = emotions[e_list[-3] -1]
-				second_strength = round(new_predictions[e_list[-3]], 1)
-				
-				output1 = emotion + " " + str(emotion_strength) 
-				output2 = second_emotion + " " + str(second_strength)
-				
-				cv2.putText(img, output1, (halfway, int(y)), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
-				
-				cv2.putText(img, output2, (halfway, int(y+30)), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)  			
-			#-------------------------
-			
 		#---------------------------------------------------------------------#
 		# Gaze
 		faces_G = detector(gray)
@@ -256,7 +226,7 @@ for name in filenames:
 			for face in faces_G:
 				G_x1, G_y1 = face.left(), face.top()
 				G_x2, G_y2 = face.right(), face.bottom()
-				cv2.rectangle(img, (G_x1, G_y1), (G_x2, G_y2), (0, 255, 0), 2)
+				#cv2.rectangle(img, (G_x1, G_y1), (G_x2, G_y2), (0, 255, 0), 2)
 				
 				# Store coordinates per face at frame
 				G_x1_list.append(G_x1)
@@ -308,30 +278,32 @@ for name in filenames:
 				# Show gaze
 				#cv2.putText(img, str(gaze_ratio), (5, 470), font, 2, (0, 0, 255), 2)
 				# Show direction
-				cv2.putText(img, direction, (5, 475), font, 2, (0, 0, 255), 2)
+				cv2.putText(img, direction, (5, 475), font, 2, (0, 255, 0), 2)
 				
 		except AttributeError:
 			pass
 		#-----------------
+		fname = framelocation + '/' + str(frame_counter) + '.jpg'
+
 		# Store frame
-		out.write(img)
+		cv2.imwrite(fname, img)
 		
 		# Display frame
-		cv2.imshow('img',img)
-		if cv2.waitKey(1) & 0xFF == ord('q'): #press q to quit
-			break
+		# cv2.imshow('img',img)
+		# if cv2.waitKey(1) & 0xFF == ord('q'): #press q to quit
+		# 	break
 		
-	FACS_df = pd.DataFrame(list(zip(frame_list_F,angry_list,disgusted_list,afraid_list,happy_list,sad_list,surprised_list,neutral_list,F_x1_list,F_x2_list,F_y1_list,F_y2_list,F_height_list,F_width_list,F_area_list)),columns=['Frame','F_Angry','F_Disgusted','F_Afraid','F_Happy','F_Sad','F_Surprised','F_Neutral','F_x1','F_x2','F_y1','F_y2','F_height','F_width','F_area'])
+	#FACS_df = pd.DataFrame(list(zip(frame_list_F,angry_list,disgusted_list,afraid_list,happy_list,sad_list,surprised_list,neutral_list,F_x1_list,F_x2_list,F_y1_list,F_y2_list,F_height_list,F_width_list,F_area_list)),columns=['Frame','F_Angry','F_Disgusted','F_Afraid','F_Happy','F_Sad','F_Surprised','F_Neutral','F_x1','F_x2','F_y1','F_y2','F_height','F_width','F_area'])
 	Gaze_df = pd.DataFrame(list(zip(frame_list_G,ratio_list,direction_list,blink_list,G_x1_list,G_x2_list,G_y1_list,G_y2_list,G_height_list,G_width_list,G_area_list)),columns=['Frame','G_Ratio','G_Direction','G_WOR','G_x1','G_x2','G_y1','G_y2','G_height','G_width','G_area'])
 	
 	# G_height_list,G_width_list,G_area_list
 	
 	# Combine FACS and Gaze
-	FG_df = pd.merge_ordered(FACS_df, Gaze_df,on='Frame',how='outer')
+	#FG_df = pd.merge_ordered(FACS_df, Gaze_df,on='Frame',how='outer')
 	
 	# Ten rows per second
 	all_frames = pd.DataFrame(frame_list,columns=['Frame'])
-	FG_df = pd.merge_ordered(FG_df,all_frames,on='Frame',how='outer')
+	FG_df = pd.merge_ordered(Gaze_df,all_frames,on='Frame',how='outer')
 	
 	# Create and insert Seconds for later use in R
 	FG_df.insert(1, 'Seconds', FG_df['Frame']/10)
