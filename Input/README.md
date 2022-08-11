@@ -1,1 +1,1 @@
-## Subject processed and annotated videos are stored here
+## Save the videos to be processed in this directory
