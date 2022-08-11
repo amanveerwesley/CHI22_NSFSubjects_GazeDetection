@@ -1,2 +1,1 @@
-# GazeDetectionOpenCV_NSF_CHI2022
- 
+## Subject processed and annotated videos are stored here
