@@ -14,19 +14,19 @@ def find_csv_filenames( path_to_dir, suffix=".csv" ):
 	return [ filename for filename in filenames if filename.endswith( suffix ) ]
 
 # subject FACS sheets
-filenames = find_csv_filenames('C:/Users/despe/source/repos/UH CS REU 2019/Chi/Stage 2/New folder (2)')
+filenames = find_csv_filenames('CSV/Subjects/')
 
 first = True
 
 for name in filenames:
 	# Data for each subject
 	if(first):
-		copy = pd.read_csv('C:/Users/despe/source/repos/UH CS REU 2019/Chi/Stage 2/New folder (2)/'+name)
+		copy = pd.read_csv('CSV/Subjects/'+name)
 		first = False
 		
 		print(name[:4])
 	else:
-		subject = pd.read_csv('C:/Users/despe/source/repos/UH CS REU 2019/Chi/Stage 2/New folder (2)/'+name)
+		subject = pd.read_csv('CSV/Subjects/'+name)
 	
 		subject.columns = copy.columns # Prepare
 		
