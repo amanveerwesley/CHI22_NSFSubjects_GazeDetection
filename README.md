@@ -1,6 +1,6 @@
 ## Please create the following folders
--1 CSV
--2 CSV\Subjects
+-1. CSV
+-2. CSV\Subjects
 -3 Input (this will contain your input video MP4's)
 -4 Output
 -5 Frames
