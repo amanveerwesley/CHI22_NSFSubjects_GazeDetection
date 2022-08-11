@@ -1,0 +1,77 @@
+schema_version: "0.5.0"
+
+before_install:
+
+  appveyor:
+    environment:
+      PATH: $<PYTHON_DIR>;$<PYTHON_DIR>\\Scripts;$<PATH>
+    commands:
+      - python ../addons/appveyor/patch_vs2008.py
+
+  circle:
+    environment:
+      PATH: /opt/python/$<MANYLINUX_PYTHON>/bin:$<PATH>
+      SETUP_CMAKE_ARGS: -DOPENSSL_ROOT_DIR:PATH=/usr/local/ssl '-DCMAKE_JOB_POOLS:STRING=compile=4;link=3' -DCMAKE_JOB_POOL_COMPILE:STRING=compile -DCMAKE_JOB_POOL_LINK:STRING=link
+
+  travis:
+    osx:
+      environment:
+        PATH: $<HOME>/.pyenv/versions/$<PYTHON_VERSION>/bin:$<PATH>
+        SETUP_BDIST_WHEEL_ARGS: --plat-name macosx-10.6-x86_64
+      commands:
+        - python ../addons/travis/install_pyenv.py
+        - python scripts/ssl-check.py
+        - python ../addons/travis/install_cmake.py 3.12.0
+
+install:
+  commands:
+    - python -c "import sys; print(sys.version)"
+    - python -m pip install --disable-pip-version-check --upgrade pip
+    - pip install pytest-virtualenv -f https://github.com/jcfr/pytest-plugins/releases/tag/v1.7.0.dev15 --pre
+    - pip install git+https://github.com/jcfr/wheeltools.git@wheeltools-2018-10-28-a2f174d0e
+    - pip install -r requirements-dev.txt
+
+before_build:
+  commands:
+    - flake8
+
+build:
+  commands:
+    # Source distribution
+    - python setup.py --hide-listing sdist
+    # Built distribution (wheel)
+    - python setup.py --hide-listing bdist_wheel $<SETUP_BDIST_WHEEL_ARGS> -- $<SETUP_CMAKE_ARGS>
+    # Cleanup
+    - python: |
+              import glob, os
+              if os.environ.get("UPLOAD_SDIST", "") == "":
+                  sdist=(glob.glob("dist/*.tar.gz") + glob.glob("dist/*.zip"))[0]
+                  print("Deleting [%s]" % sdist)
+                  os.remove(sdist)
+
+  circle:
+    commands:
+      - |
+        # Since there are no external shared libraries to bundle into the wheels
+        # this step will fixup the wheel switching from 'linux' to 'manylinux2010' tag
+        arch=$(python -c "import sys;print('x86_64' if sys.maxsize > 2**32 else 'i686')")
+        for whl in dist/*linux_${arch}.whl; do
+            auditwheel repair --plat "manylinux2010_${arch}" $whl -w ./dist/
+            rm $whl
+        done
+
+test:
+  commands:
+    # Convert to generic platform wheel
+    - python: |
+              import glob, sys
+              sys.path.insert(0, "./scripts")
+              from convert_to_generic_platform_wheel import convert_to_generic_platform_wheel
+              wheels = glob.glob("dist/*.whl")
+              for wheel in wheels:
+                  convert_to_generic_platform_wheel(wheel, remove_original=True)
+    - python setup.py test
+
+#after_test:
+#  commands:
+#    - codecov -X gcov --required --file ./tests/coverage.xml
